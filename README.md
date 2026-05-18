@@ -1,23 +1,82 @@
 # `reprogit`: reproducible generation of git repositories
 
-`reprogit` can be used to generate a repository whose commits are created from the contents of an ordered list of folders (each folder represents a commit). This is useful to configure repositories for testing tools that work agains local or remote repositories.
+`reprogit` can be used to generate a repository whose commits are created from the contents of an ordered list of folders (each folder represents a commit). This is useful to configure repositories for testing tools that work against local or remote repositories.
+
+## Setup
+
+1. Create an empty GitHub repository to use as the generated test repository.
+
+    This repository is disposable: when pull requests are configured, `reprogit` closes open pull requests, deletes workflow runs, deletes non-default branches, and force-pushes generated branches.
+
+2. In the fixture directory, set `.remote` to the SSH or HTTPS URL of that GitHub repository:
+
+    ```bash
+    # example/.remote
+    git@github.com:YOUR_USER/YOUR_TEST_REPO.git
+    ```
+
+3. Create a fine-grained personal access token in GitHub under `Settings > Developer settings > Personal access tokens > Fine-grained tokens`. Limit the token to the generated test repository and grant these repository permissions:
+
+    - `Contents`: Read and write
+    - `Pull requests`: Read and write
+    - `Actions`: Read and write
+    - `Metadata`: Read-only
+
+4. Expose the token as `GITHUB_TOKEN` before running `reprogit`:
+
+    ```bash
+    export GITHUB_TOKEN=github_pat_...
+    ```
+
+5. Alternatively, create a local `.env` file. `reprogit` loads `.env` automatically from this directory or from the fixture directory:
+
+    ```bash
+    # .env
+    GITHUB_TOKEN=github_pat_...
+    ```
+
+    Do not commit `.env` or any token value. The project `.gitignore` ignores `.env`.
 
 ## Usage (with the provided example)
 
 From the root of this repository, run:
 
-```python
-python reprogit.py example
+```bash
+python3 reprogit.py
 ```
 
-The previous command generates a new git repository in a `repo` folder. This repository has one commit for each one of the folders present in the `example` directory, organized as follows:
+The previous command generates a new git repository in a `repo` folder. By default, the fixture directory is `example`; another fixture directory can be passed as the first argument. The generated repository has one commit for each one of the folders present in the fixture directory, organized as follows:
 
 - The name of each folder follows the pattern `<commit_number>--<branch_name>`. The `commit_number` orders commits in time, independently of the branch they are placed on, and all commit numbers must start with a "c" (e.g. `c010`).
 - Commits will be placed in branches according to `branch_name`, in the order imposed by their `commit_number`. This is useful to create conflicts between branches, for instance.
 - If no `branch_name` is present, it is assumed that the commit belongs to the `main` default branch.
 - Each folder contains the updated files that have changed with respect to the previous commit, as well as a `.message` file that contains the commit message.
-- If a `.remote` file with a repo url is present at the root folder, then branches will be associated with remote branches, and (WARNING!!) force-pushed.
+- If a folder contains a `.merge` file, the current branch merges the branch named in `.merge` before any files in that folder are committed. This lets later folders branch from a history where an earlier pull request has already been merged.
+- If a `.remote` file with a repo url is present at the root folder, then branches will be associated with remote branches.
+- If a `.pullrequests.json` file is present in the fixture directory or next to `reprogit.py`, then the configured pull requests will be created or updated after the generated branches are force-pushed.
 
+To create the same pull requests on every run, configure them in `.pullrequests.json`:
+
+```json
+[
+  {
+    "title": "Add metamodel",
+    "head": "add-metamodel",
+    "base": "main",
+    "body": "Adds the library metamodel fixture.",
+    "merge": true
+  }
+]
+```
+
+Pull request creation uses the GitHub repository from `.remote` and a token from `GITHUB_TOKEN`:
+
+```bash
+export GITHUB_TOKEN=...
+python3 reprogit.py
+```
+
+The token must have permission to write repository contents, pull requests, and GitHub Actions runs in the target repository. Before creating the configured pull requests, `reprogit` closes open pull requests, deletes workflow runs, deletes non-default branches, force-pushes the generated branches, and then recreates the configured pull requests. Pull requests with `"merge": true` are created and merged before the final generated branch state is pushed. GitHub does not permanently delete pull request records; closed pull requests remain visible in repository history.
 
 ## Note on commit hashes
 
