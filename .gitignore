@@ -1,3 +1,9 @@
+# Non-code project files
 repo
-__pycache__
 example
+
+# Cache files
+__pycache__
+
+# Environment variables
+.env
