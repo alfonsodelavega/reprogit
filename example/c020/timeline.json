@@ -1,9 +1,0 @@
-{
-    "model_extensions": [
-      "model",
-      "ecore"
-    ],
-    "metamodels": [
-      "metamodels/repairshop.ecore"
-    ]
-  }
