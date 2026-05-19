@@ -28,7 +28,7 @@
     export GITHUB_TOKEN=github_pat_...
     ```
 
-5. Alternatively, create a local `.env` file. `reprogit` loads `.env` automatically from this directory or from the fixture directory:
+5. Alternatively, create a local `.env` file in the project root. `reprogit` loads it automatically:
 
     ```bash
     # .env
@@ -48,12 +48,12 @@ python3 reprogit.py
 The previous command generates a new git repository in a `repo` folder. By default, the fixture directory is `example`; another fixture directory can be passed as the first argument. The generated repository has one commit for each one of the folders present in the fixture directory, organized as follows:
 
 - The name of each folder follows the pattern `<commit_number>--<branch_name>`. The `commit_number` orders commits in time, independently of the branch they are placed on, and all commit numbers must start with a "c" (e.g. `c010`).
-- Commits will be placed in branches according to `branch_name`, in the order imposed by their `commit_number`. This is useful to create conflicts between branches, for instance.
+- Commits will be placed in branches according to `branch_name`, in the order imposed by their `commit_number`. When a feature branch is first seen, it is created from the current `main` branch; later folders with the same `branch_name` add commits to that existing branch.
 - If no `branch_name` is present, it is assumed that the commit belongs to the `main` default branch.
-- Each folder contains the updated files that have changed with respect to the previous commit, as well as a `.message` file that contains the commit message.
-- If a folder contains a `.merge` file, the current branch merges the branch named in `.merge` before any files in that folder are committed. This lets later folders branch from a history where an earlier pull request has already been merged.
+- Each folder contains the updated files that have changed with respect to the previous commit, as well as a `.message` file that contains the commit message. Files can be placed directly in the commit folder or inside nested directories such as `library/library.ecore`.
+- If a folder contains a `.merge` file, the current branch merges the branch named in `.merge` before any files in that folder are committed. Do not use `.merge` for branches that should remain open as pull requests.
 - If a `.remote` file with a repo url is present at the root folder, then branches will be associated with remote branches.
-- If a `.pullrequests.json` file is present in the fixture directory or next to `reprogit.py`, then the configured pull requests will be created or updated after the generated branches are force-pushed.
+- If a `.pullrequests.json` file is present in the fixture directory, then the configured pull requests will be created or updated after the generated branches are force-pushed.
 
 To create the same pull requests on every run, configure them in `.pullrequests.json`:
 
@@ -63,8 +63,7 @@ To create the same pull requests on every run, configure them in `.pullrequests.
     "title": "Add metamodel",
     "head": "add-metamodel",
     "base": "main",
-    "body": "Adds the library metamodel fixture.",
-    "merge": true
+    "body": "Adds the library metamodel fixture."
   }
 ]
 ```
@@ -76,7 +75,7 @@ export GITHUB_TOKEN=...
 python3 reprogit.py
 ```
 
-The token must have permission to write repository contents, pull requests, and GitHub Actions runs in the target repository. Before creating the configured pull requests, `reprogit` closes open pull requests, deletes workflow runs, deletes non-default branches, force-pushes the generated branches, and then recreates the configured pull requests. Pull requests with `"merge": true` are created and merged before the final generated branch state is pushed. GitHub does not permanently delete pull request records; closed pull requests remain visible in repository history.
+The token must have permission to write repository contents, pull requests, and GitHub Actions runs in the target repository. On each publishing run, `reprogit` first closes open pull requests, deletes workflow runs, deletes non-default branches, force-pushes the generated branches, and then creates the configured pull requests. The resulting remote is one `main` branch with the base files plus one branch per feature, each with an open pull request into its configured base branch. GitHub does not permanently delete pull request records; closed pull requests remain visible in repository history.
 
 ## Note on commit hashes
 

@@ -1,0 +1,12 @@
+DEFAULT_FIXTURE_DIR = "example"
+OUTPUT_REPO = "repo"
+
+MESSAGE_FILE = ".message"
+MERGE_FILE = ".merge"
+PULL_REQUESTS_FILE = ".pullrequests.json"
+REMOTE_FILE = ".remote"
+ENV_FILE = ".env"
+
+GITHUB_TOKEN_ENV = "GITHUB_TOKEN"
+GITHUB_API_URL = "https://api.github.com"
+GITHUB_API_VERSION = "2022-11-28"
