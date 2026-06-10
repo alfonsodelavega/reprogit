@@ -120,13 +120,17 @@ This cleanup happens before new branches are pushed or new pull requests are cre
 
 ## 10. Push branches and create pull requests
 
-The script force-pushes the generated local branches:
+If no pull requests are configured, the script tells you how to force-push the generated local branches:
 
 ```bash
 git -C repo push --all --force
 ```
 
-Then it creates each configured pull request. The expected remote shape is one base branch, usually `main`, plus feature branches with open pull requests into that base branch.
+If pull requests are configured, the publisher pushes generated branch snapshots in fixture order. After each pushed snapshot, it creates any configured pull request whose head and base branches are now available on the remote. Later pushes to an already-open pull request head branch are left to GitHub, which reports them as `synchronize` pull request events.
+
+When a configured pull request head branch has more than one fixture snapshot, the publisher waits for the GitHub Actions run associated with the current pull request state before pushing the next state. It also waits for the final updated state before finishing, so workflows such as RAMA have analyzed each distinct branch state.
+
+The expected remote shape is one base branch, usually `main`, plus feature branches with open pull requests into that base branch.
 
 ## Module map
 

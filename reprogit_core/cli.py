@@ -54,7 +54,7 @@ def main() -> int:
 
     try:
         publish_repository(generated, remote_url, pull_requests, token)
-    except ValueError as error:
+    except (RuntimeError, TimeoutError, ValueError) as error:
         print(error)
         return 1
     return 0

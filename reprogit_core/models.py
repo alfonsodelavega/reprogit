@@ -32,6 +32,16 @@ class PullRequestSpec:
 
 
 @dataclass(frozen=True)
+class CommitSnapshot:
+    """The HEAD of a branch after applying one fixture commit directory."""
+
+    directory: str
+    branch: str
+    sha: str
+
+
+@dataclass(frozen=True)
 class GeneratedRepository:
     git: "GitRepository"
     branches: set[str]
+    commit_snapshots: list[CommitSnapshot]
