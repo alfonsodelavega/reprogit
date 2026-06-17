@@ -54,8 +54,8 @@ The previous command generates a new git repository in a `repo` folder. By defau
 - If a folder contains a `.merge` file, the current branch merges the branch named in `.merge` before any files in that folder are committed. Do not use `.merge` for branches that should remain open as pull requests.
 - If a folder contains a `.delete` file, each non-empty line names a file or directory to remove before the folder's contents are copied. Use this to simulate deleting a metamodel or model from a later commit.
 - If a `.remote` file with a repo url is present at the root folder, then branches will be associated with remote branches.
-- If a `.pullrequests.json` file is present in the fixture directory, publishing replays the generated branch snapshots in fixture order. A pull request is created as soon as its head and base branches have been pushed; later pushes to that head branch trigger GitHub's `pull_request` `synchronize` action automatically.
-- If a configured pull request branch has more than one fixture commit, publishing waits for the GitHub Actions run for each branch state to complete before moving to the next state. This keeps workflows such as RAMA from reading the final pull request head in every run.
+- If a `.pullrequests.json` file is present in the fixture directory, publishing replays the generated branch snapshots in fixture order. For branches with a single fixture commit, pull requests are created after all generated branch snapshots have been pushed.
+- If a configured pull request branch has more than one fixture commit, its pull request is created as soon as its head and base branches have been pushed. Publishing then waits for each non-final branch state before pushing the next state. This keeps workflows such as RAMA from reading the final pull request head in every run.
 
 To create the same pull requests on every run, configure them in `.pullrequests.json`:
 
@@ -77,7 +77,7 @@ export GITHUB_TOKEN=...
 python3 reprogit.py
 ```
 
-The token must have permission to write repository contents, pull requests, and GitHub Actions runs in the target repository. On each publishing run, `reprogit` first closes open pull requests, deletes workflow runs, deletes non-default branches, and then pushes generated branch snapshots in fixture order. For repeated pull request branches, `reprogit` polls GitHub Actions and waits up to 30 minutes for each pull request workflow run before pushing the next branch state. The resulting remote is one `main` branch with the base files plus one branch per feature, each with an open pull request into its configured base branch. GitHub does not permanently delete pull request records; closed pull requests remain visible in repository history.
+The token must have permission to write repository contents, pull requests, and GitHub Actions runs in the target repository. On each publishing run, `reprogit` first closes open pull requests, deletes workflow runs, deletes non-default branches, and then pushes generated branch snapshots in fixture order. For repeated pull request branches, `reprogit` creates the pull request early, polls GitHub Actions, and waits up to 30 minutes for each non-final pull request workflow run before pushing the next branch state. Pull requests for single-commit branches are created after all snapshots have been pushed. The resulting remote is one `main` branch with the base files plus one branch per feature, each with an open pull request into its configured base branch. GitHub does not permanently delete pull request records; closed pull requests remain visible in repository history.
 
 ## Note on commit hashes
 
