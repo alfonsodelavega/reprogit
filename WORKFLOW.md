@@ -69,8 +69,9 @@ For each folder, the generator:
 1. Switches to or creates the target branch. New feature branches are created from `main`.
 2. Reads `.message`.
 3. If `.merge` exists, merges the branch named inside it.
-4. Recursively copies all fixture files except root `.message` and `.merge`.
-5. Stages and commits copied file changes, if any.
+4. If `.delete` exists, removes each listed relative path from the generated repository before copying new files.
+5. Recursively copies all fixture files except root `.message`, `.merge`, and `.delete`.
+6. Stages and commits copied file changes, if any.
 
 ## 5. Optional local merges
 

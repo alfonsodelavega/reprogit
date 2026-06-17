@@ -1,6 +1,14 @@
+import shutil
 from pathlib import Path
 
-from .fixtures import branch_name_for, commit_directories, copy_commit_contents, read_merge_branch, read_message
+from .fixtures import (
+    branch_name_for,
+    commit_directories,
+    copy_commit_contents,
+    read_deleted_paths,
+    read_merge_branch,
+    read_message,
+)
 from .git import GitRepository
 from .models import CommitSnapshot, GeneratedRepository
 
@@ -38,6 +46,7 @@ class RepositoryGenerator:
         if merge_branch:
             self.apply_merge(commit_dir.name, branch_name, merge_branch, message)
 
+        self.apply_deletions(commit_dir)
         copy_commit_contents(commit_dir, self.repository.path)
         self.repository.add_all()
         if self.repository.has_staged_changes():
@@ -52,3 +61,16 @@ class RepositoryGenerator:
             raise ValueError(f"{directory_name} merges unknown branch '{head_branch}'.")
 
         self.repository.merge_no_ff(head_branch, message)
+
+    def apply_deletions(self, commit_dir: Path) -> None:
+        for deleted_path in read_deleted_paths(commit_dir):
+            target = self.repository.path / deleted_path
+            if target.is_dir():
+                shutil.rmtree(target)
+                continue
+
+            if target.exists():
+                target.unlink()
+                continue
+
+            raise ValueError(f"{commit_dir.name} deletes unknown path '{deleted_path}'.")
