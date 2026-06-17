@@ -2,7 +2,7 @@ import json
 import shutil
 from pathlib import Path
 
-from .config import MERGE_FILE, MESSAGE_FILE, PULL_REQUESTS_FILE
+from .config import DELETE_FILE, MERGE_FILE, MESSAGE_FILE, PULL_REQUESTS_FILE
 from .models import PullRequestSpec
 
 
@@ -30,13 +30,32 @@ def read_merge_branch(directory: Path) -> str | None:
     return read_optional_text(directory / MERGE_FILE)
 
 
+def read_deleted_paths(directory: Path) -> list[Path]:
+    path = directory / DELETE_FILE
+    if not path.exists():
+        return []
+
+    deleted_paths: list[Path] = []
+    for index, raw_line in enumerate(path.read_text().splitlines(), start=1):
+        entry = raw_line.strip()
+        if not entry or entry.startswith("#"):
+            continue
+
+        candidate = Path(entry)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            raise ValueError(f"{DELETE_FILE} entry {index} in {directory.name} must be a relative path.")
+        deleted_paths.append(candidate)
+
+    return deleted_paths
+
+
 def copy_commit_contents(commit_dir: Path, output_dir: Path) -> None:
     for source in commit_dir.rglob("*"):
         if not source.is_file():
             continue
 
         relative_path = source.relative_to(commit_dir)
-        if relative_path.parts == (MESSAGE_FILE,) or relative_path.parts == (MERGE_FILE,):
+        if relative_path.parts in {(MESSAGE_FILE,), (MERGE_FILE,), (DELETE_FILE,)}:
             continue
 
         destination = output_dir / relative_path

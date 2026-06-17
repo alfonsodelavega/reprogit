@@ -3,6 +3,7 @@ OUTPUT_REPO = "repo"
 
 MESSAGE_FILE = ".message"
 MERGE_FILE = ".merge"
+DELETE_FILE = ".delete"
 PULL_REQUESTS_FILE = ".pullrequests.json"
 REMOTE_FILE = ".remote"
 ENV_FILE = ".env"
