@@ -127,9 +127,9 @@ If no pull requests are configured, the script tells you how to force-push the g
 git -C repo push --all --force
 ```
 
-If pull requests are configured, the publisher pushes generated branch snapshots in fixture order. After each pushed snapshot, it creates any configured pull request whose head and base branches are now available on the remote. Later pushes to an already-open pull request head branch are left to GitHub, which reports them as `synchronize` pull request events.
+If pull requests are configured, the publisher pushes generated branch snapshots in fixture order. For branches with a single fixture snapshot, pull requests are created after all generated snapshots have been pushed.
 
-When a configured pull request head branch has more than one fixture snapshot, the publisher waits for the GitHub Actions run associated with the current pull request state before pushing the next state. It also waits for the final updated state before finishing, so workflows such as RAMA have analyzed each distinct branch state.
+When a configured pull request head branch has more than one fixture snapshot, the publisher creates the pull request as soon as its head and base branches are available on the remote. It waits for the GitHub Actions run associated with each non-final pull request state before pushing the next state. Later pushes to that already-open pull request head branch are left to GitHub, which reports them as `synchronize` pull request events. The publisher does not wait for the final branch state before finishing.
 
 The expected remote shape is one base branch, usually `main`, plus feature branches with open pull requests into that base branch.
 

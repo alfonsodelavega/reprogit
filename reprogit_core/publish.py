@@ -34,6 +34,14 @@ def pull_request_can_be_created(
     return (head is None or head in pushed_branches) and (base is None or base in pushed_branches)
 
 
+def pull_request_needs_timeline_wait(
+    pull_request: PullRequestSpec,
+    workflow_wait_branches: set[str],
+) -> bool:
+    head = local_branch_name(pull_request.head)
+    return head is not None and head in workflow_wait_branches
+
+
 def wait_for_pending_workflow(
     github: GitHubClient,
     remote_url: str,
@@ -78,7 +86,11 @@ def publish_pull_request_timeline(
         pushed_heads[snapshot.branch] = snapshot.sha
         remaining_snapshots[snapshot.branch] -= 1
 
-        if snapshot.branch in open_pull_requests_by_head and snapshot.branch in workflow_wait_branches:
+        if (
+            snapshot.branch in open_pull_requests_by_head
+            and snapshot.branch in workflow_wait_branches
+            and remaining_snapshots[snapshot.branch] > 0
+        ):
             pending_waits[snapshot.branch] = PendingWorkflowWait(
                 open_pull_requests_by_head[snapshot.branch],
                 snapshot.branch,
@@ -88,6 +100,8 @@ def publish_pull_request_timeline(
 
         for index, pull_request in enumerate(pull_requests):
             if index in created_pull_requests:
+                continue
+            if not pull_request_needs_timeline_wait(pull_request, workflow_wait_branches):
                 continue
             if not pull_request_can_be_created(pull_request, pushed_branches):
                 continue
@@ -103,7 +117,7 @@ def publish_pull_request_timeline(
                 continue
 
             open_pull_requests_by_head[head] = github_pull_request
-            if action == "created" and head in workflow_wait_branches:
+            if action == "created" and head in workflow_wait_branches and remaining_snapshots[head] > 0:
                 pending_waits[head] = PendingWorkflowWait(
                     github_pull_request,
                     head,
