@@ -2,7 +2,16 @@
 
 `reprogit` can be used to generate a repository whose commits are created from the contents of an ordered list of folders (each folder represents a commit). This is useful to configure repositories for testing tools that work against local or remote repositories.
 
-## Setup
+## Setup for local generation
+
+`reprogit` has no Python package dependencies, but requires Git and a configured author identity:
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+```
+
+## Setup for GitHub publishing
 
 1. Create an empty GitHub repository to use as the generated test repository.
 
@@ -45,15 +54,20 @@ From the root of this repository, run:
 python3 reprogit.py
 ```
 
-The previous command generates a new git repository in a `repo` folder. By default, the fixture directory is `example`; another fixture directory can be passed as the first argument. The generated repository has one commit for each one of the folders present in the fixture directory, organized as follows:
+The previous command generates a new Git repository in `repo/`. The directory is deleted and recreated on every run. By default, the fixture directory is `example`; another fixture directory can be passed as the first argument:
 
-- The name of each folder follows the pattern `<commit_number>--<branch_name>`. The `commit_number` orders commits in time, independently of the branch they are placed on, and all commit numbers must start with a "c" (e.g. `c010`).
-- Commits will be placed in branches according to `branch_name`, in the order imposed by their `commit_number`. When a feature branch is first seen, it is created from the current `main` branch; later folders with the same `branch_name` add commits to that existing branch.
-- If no `branch_name` is present, it is assumed that the commit belongs to the `main` default branch.
+```bash
+python3 reprogit.py path/to/fixture
+```
+
+The generated repository has one commit for each fixture folder whose name starts with `c`, organized as follows:
+
+- Fixture folders are processed in lexicographical order. Use names such as `c010` or `c010--feature` to make that order explicit. The optional text after `--` is the target branch name; without it, the commit is created on `main`.
+- When a feature branch is first seen, it is created from the current `main` branch; later folders with the same branch name add commits to that existing branch.
 - Each folder contains the updated files that have changed with respect to the previous commit, as well as a `.message` file that contains the commit message. Files can be placed directly in the commit folder or inside nested directories such as `library/library.ecore`.
 - If a folder contains a `.merge` file, the current branch merges the branch named in `.merge` before any files in that folder are committed. Do not use `.merge` for branches that should remain open as pull requests.
-- If a folder contains a `.delete` file, each non-empty line names a file or directory to remove before the folder's contents are copied. Use this to simulate deleting a metamodel or model from a later commit.
-- If a `.remote` file with a repo url is present at the root folder, then branches will be associated with remote branches.
+- If a folder contains a `.delete` file, each non-empty, non-comment line names a relative file or directory to remove before the folder's contents are copied. Use this to simulate deleting a metamodel or model from a later commit.
+- If a `.remote` file containing a repository URL is present at the fixture root, the generated repository is configured with it as `origin` after confirmation. Without `.remote`, generation remains local.
 - If a `.pullrequests.json` file is present in the fixture directory, publishing replays the generated branch snapshots in fixture order. For branches with a single fixture commit, pull requests are created after all generated branch snapshots have been pushed.
 - If a configured pull request branch has more than one fixture commit, its pull request is created as soon as its head and base branches have been pushed. Publishing then waits for each non-final branch state before pushing the next state. This keeps workflows such as RAMA from reading the final pull request head in every run.
 
@@ -77,7 +91,7 @@ export GITHUB_TOKEN=...
 python3 reprogit.py
 ```
 
-The token must have permission to write repository contents, pull requests, and GitHub Actions runs in the target repository. On each publishing run, `reprogit` first closes open pull requests, deletes workflow runs, deletes non-default branches, and then pushes generated branch snapshots in fixture order. For repeated pull request branches, `reprogit` creates the pull request early, polls GitHub Actions, and waits up to 30 minutes for each non-final pull request workflow run before pushing the next branch state. Pull requests for single-commit branches are created after all snapshots have been pushed. The resulting remote is one `main` branch with the base files plus one branch per feature, each with an open pull request into its configured base branch. GitHub does not permanently delete pull request records; closed pull requests remain visible in repository history.
+The token must have permission to write repository contents, pull requests, and GitHub Actions runs in the target repository. When pull requests are configured, each publishing run first closes open pull requests, deletes workflow runs, deletes non-default branches, and then pushes generated branch snapshots in fixture order. For repeated pull request branches, `reprogit` creates the pull request early, polls GitHub Actions, and waits up to 10 minutes for each non-final pull request workflow run before pushing the next branch state. Pull requests for single-commit branches are created after all snapshots have been pushed. The resulting remote is one `main` branch with the base files plus one branch per feature, each with an open pull request into its configured base branch. GitHub does not permanently delete pull request records; closed pull requests remain visible in repository history.
 
 ## Note on commit hashes
 
