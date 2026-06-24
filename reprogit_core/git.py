@@ -36,6 +36,10 @@ class GitRepository:
 
     def add_all(self) -> None:
         self.git(["add", "."])
+        # Fixture files are copied with their metadata preserved. Re-normalizing
+        # makes Git re-hash tracked files instead of relying on its stat cache,
+        # which can otherwise miss a same-size replacement with a close mtime.
+        self.git(["add", "--renormalize", "."])
 
     def commit(self, message: str) -> None:
         self.git(["commit", "-m", message])
